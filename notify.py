@@ -134,7 +134,6 @@ logging.debug(repr(result))
 
 metrics = []
 for key, value in result.items():
-    print args.job_name
     match2 = bool(re.search('(F|f)ull',args.job_name))
     if match2:
     	metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key + '-full', args.job_name), value) ) 
