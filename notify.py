@@ -134,7 +134,13 @@ logging.debug(repr(result))
 
 metrics = []
 for key, value in result.items():
-    metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key, args.job_name), value) )
+    print args.job_name
+    match2 = bool(re.search('(F|f)ull',args.job_name))
+    if match2:
+    	metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key + '-full', args.job_name), value) ) 
+    else:
+	metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key, args.job_name), value) )
+#print metrics
 
 # Send result to zabbix
 logging.info( "sending metrics to '{0}': '{1}'".format(conf['zabbix_server'], metrics) )
