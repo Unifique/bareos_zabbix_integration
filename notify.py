@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import sys
 import subprocess
@@ -34,12 +35,6 @@ logging.basicConfig(
 )
 logging.info('sys.argv: ' + repr(sys.argv))
 
-# Handle incorrect call
-# zbxsend is broken in 3.x (https://github.com/alledm/zbxsend/commit/a485c97a4f0c2fa46fe3192da9979cbeade752b4)
-if sys.version_info >= (3,):
-    logging.warn("Need python version 2.x to run")
-    quit(1)
-
 parser = argparse.ArgumentParser(
             formatter_class=RawTextHelpFormatter,
             description=
@@ -66,7 +61,7 @@ parser.add_argument('--email-on-fail',
                     help='Send email about failed jobs to recipients')
 parser.add_argument('--email-on-success',
                     action='store_true',
-                    help='Send email about successed jobs to recipients')
+                    help='Send email about succeed jobs to recipients')
 
 args = parser.parse_args()
 
@@ -83,19 +78,19 @@ tests = (
 
     ("\s*FD Bytes Written:\s+([0-9][,0-9]*)\s+\(.*\)\s*",
         "{0}.fd_byteswritten".format(conf['type']),
-        lambda x: x.group(1).translate(None, ",")),
+        lambda x: x.group(1).replace(",", "")),
 
     ("\s*SD Bytes Written:\s+([0-9][,0-9]*)\.*",
         "{0}.sd_byteswritten".format(conf['type']),
-        lambda x: x.group(1).translate(None, ",")),
+        lambda x: x.group(1).replace(",", "")),
 
     ("\s*Last Volume Bytes:\s+([0-9][,0-9]*).*",
         "{0}.lastvolumebytes".format(conf['type']),
-        lambda x: x.group(1).translate(None, ",")),
+        lambda x: x.group(1).replace(",", "")),
 
     ("\s*Files Examined:\s+([0-9][,0-9]*)\s*",
         "{0}.verify_filesexamined".format(conf['type']),
-        lambda x: x.group(1).translate(None, ",")),
+        lambda x: x.group(1).replace(",", "")),
 
     ("\s*Non-fatal FD errors:\s+([0-9]+)\s*",
         "{0}.fd_errors_non_fatal".format(conf['type']),
@@ -134,11 +129,18 @@ logging.debug(repr(result))
 
 metrics = []
 for key, value in result.items():
-    match2 = bool(re.search('(F|f)ull',args.job_name))
+    #print args.job_name
+    match2 = bool(re.search('(F|f)ull',args.job_name))          #Verifica se o Job de backup é Full Virtual (Archive)
     if match2:
-    	metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key + '-full', args.job_name), value) ) 
+        metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key + '-full', args.job_name), value) )
+    match2 = bool(re.search('^Consolidate',args.job_name))
+    if match2:
+        metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key + '-consolidate', args.job_name), value) )
+    match2 = bool(re.search('Copy-Consolidated([0-9{1,2}])?',args.job_name))
+    if match2:
+        metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key + '-copy', args.job_name), value) )
     else:
-	metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key, args.job_name), value) )
+        metrics.append( Metric(conf['hostname'], '{0}[{1}]'.format(key, args.job_name), value) )
 #print metrics
 
 # Send result to zabbix
